@@ -23,13 +23,13 @@ class User(Base):
     __tablename__ = "user"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    login: Mapped[str | None] = mapped_column(String(256), unique=True)
-    password: Mapped[str] = mapped_column(String(32), nullable=False)
+    login: Mapped[str | None] = mapped_column(String(256), unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(nullable=False)
     name: Mapped[str] = mapped_column(String(256), nullable=False)
     img_url: Mapped[str | None]
     about: Mapped[str | None]
-    created: Mapped[created]
-    modified: Mapped[modified]
+    created_time: Mapped[created]
+    modified_time: Mapped[modified]
     is_deleted: Mapped[is_deleted]
     post: Mapped[list["Post"]] = relationship(
         back_populates="user",
@@ -57,8 +57,8 @@ class Post(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str | None] = mapped_column(String(256))
     text: Mapped[str | None]
-    created: Mapped[created]
-    modified: Mapped[modified]
+    created_time: Mapped[created]
+    modified_time: Mapped[modified]
     is_deleted: Mapped[is_deleted]
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     user: Mapped["User"] = relationship(back_populates="post")
@@ -88,8 +88,8 @@ class PostImage(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     url: Mapped[str] = mapped_column(nullable=False)
     ratio: Mapped[str | None]
-    created: Mapped[created]
-    modified: Mapped[modified]
+    created_time: Mapped[created]
+    modified_time: Mapped[modified]
     is_deleted: Mapped[is_deleted]
     post_id: Mapped[int] = mapped_column(ForeignKey("post.id"))
     post: Mapped["Post"] = relationship(back_populates="post_image")
@@ -109,7 +109,7 @@ class Like(Base):
     post: Mapped["Post"] = relationship(back_populates="like")
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     user: Mapped["User"] = relationship(back_populates="like")
-    created: Mapped[created]
+    created_time: Mapped[created]
 
     def __repr__(self) -> str:
         return str(self)
@@ -127,8 +127,8 @@ class Comment(Base):
     post: Mapped["Post"] = relationship(back_populates="comment")
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     user: Mapped["User"] = relationship(back_populates="comment")
-    created: Mapped[created]
-    modified: Mapped[modified]
+    created_time: Mapped[created]
+    modified_time: Mapped[modified]
     is_deleted: Mapped[is_deleted]
 
     def __repr__(self) -> str:

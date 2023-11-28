@@ -1,10 +1,9 @@
 import asyncio
 
-from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
-import config
-from db.shemas import Base, User
+from src import config
+from src.db.shemas import Base
 
 engine = create_async_engine(config.DATABASE_URL_asyncpg(), echo=True, pool_size=20)
 async_session: async_sessionmaker = async_sessionmaker(engine, expire_on_commit=False)

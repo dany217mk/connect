@@ -4,12 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import update, select, delete, func
 from sqlalchemy.orm import selectinload, joinedload
 
-from db.shemas import User, Post, PostImage, Like, Comment
+from src.db.schemas import User, Post, PostImage, Like, Comment
 
 
 # users:
-async def add_user(session: AsyncSession, name: str, password: str) -> User:
-    user = User(name=name, password=password)
+async def add_user(session: AsyncSession,login: str, name: str, password: str) -> User:
+    user = User(login=login, name=name, password=password)
     session.add(user)
     await session.commit()
     return user
@@ -29,21 +29,18 @@ async def update_user(session: AsyncSession, id: int, login: str | None = None,
 
 
 async def get_users(session: AsyncSession):
-    stmt = select(User).where(User.is_deleted == 0).options(
-        selectinload(User.post),
-        selectinload(User.like),
-        selectinload(User.comment),
-    )
+    stmt = select(User).where(User.is_deleted == 0)
     users: Iterable[User] = await session.scalars(stmt)
     return users
 
 
 async def get_user_by_id(session: AsyncSession, id: int):
-    stmt = select(User).where(User.id == id).options(
-        selectinload(User.post),
-        selectinload(User.like),
-        selectinload(User.comment),
-    )
+    stmt = select(User).where(User.id == id)
+    user = await session.scalar(stmt)
+    return user
+
+async def get_user_by_login(session: AsyncSession, login: str):
+    stmt = select(User).where(User.login == login)
     user = await session.scalar(stmt)
     return user
 
