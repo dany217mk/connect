@@ -1,7 +1,7 @@
 from typing import Iterable
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import update, select, delete, func
+from sqlalchemy import update, select, delete, func, Select
 from sqlalchemy.orm import selectinload, joinedload
 
 from src.db.schemas import User, Post, PostImage, Like, Comment
@@ -20,11 +20,11 @@ async def add_user(session: AsyncSession,login: str, name: str, password: str) -
     return user
 
 
-async def update_user(session: AsyncSession, id: int, login: str | None = None,
+async def update_user(session: AsyncSession, id: int, name: str | None = None,
                       about: str | None = None, img_url: str | None = None) -> User:
     user = await session.get(User, id)
-    if login is not None:
-        user.login = login
+    if name is not None:
+        user.name = name
     if about is not None:
         user.about = about
     if img_url is not None:
@@ -57,7 +57,7 @@ async def add_post(session: AsyncSession, user: User, title: str = "", text: str
     return user.post
 
 
-async def add_post_with_images(session: AsyncSession, user: User, title: str = "",
+async def add_post_with_images(session: AsyncSession, user_id:int, title: str = "",
                                text: str = "", images = []) -> Post:
     post_images = [
         PostImage(url=image["url"], ratio=image["ratio"])
@@ -66,7 +66,7 @@ async def add_post_with_images(session: AsyncSession, user: User, title: str = "
     post = Post(
         title=title,
         text=text,
-        user_id=user.id,
+        user_id=user_id,
         post_image=post_images
     )
     session.add(post)
@@ -90,7 +90,7 @@ async def get_posts(session: AsyncSession, limit, offset):
         selectinload(Post.post_image),
         selectinload(Post.like),
         selectinload(Post.comment),
-    )
+    ).order_by(Post.created_time.desc())
     res = await paginate(session, stmt, limit, offset)
     return res
 
