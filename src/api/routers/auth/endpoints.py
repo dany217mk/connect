@@ -1,8 +1,7 @@
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, Security, HTTPException
-from fastapi.responses import JSONResponse
-from fastapi_jwt import JwtRefreshBearer, JwtAuthorizationCredentials, JwtAccessBearer
+from fastapi_jwt import JwtAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.routers.auth import models
@@ -10,7 +9,6 @@ from src.api.routers.auth.utils import get_hash_password, verify_password
 from src.api.security import access_policy, refresh_policy
 from src.api.sessions import get_db_session
 from src.db import crud
-
 
 router = APIRouter(
     tags=["auth"],
@@ -39,7 +37,7 @@ async def login(user: models.UserLogin, session: AsyncSession = Depends(get_db_s
             subject = {"login": res.login, "name": res.name, "id": res.id}
             access_token = access_policy.create_access_token(subject=subject)
             refresh_token = refresh_policy.create_refresh_token(subject=subject)
-            return {"access_token": access_token, "refresh_token": refresh_token}
+            return {"user_id": res.id, "access_token": access_token, "refresh_token": refresh_token}
     raise HTTPException(status_code=400, detail="Incorrect login or password")
 
 
@@ -48,7 +46,8 @@ def refresh(credentials: JwtAuthorizationCredentials = Security(refresh_policy))
     access_token = access_policy.create_access_token(subject=credentials.subject)
     refresh_token = refresh_policy.create_refresh_token(subject=credentials.subject, expires_delta=timedelta(days=2))
 
-    return {"access_token": access_token, "refresh_token": refresh_token}
+    return {"user_id": credentials.subject['id'], "access_token": access_token, "refresh_token": refresh_token}
+
 
 @router.get("/test")
 async def test(credentials: JwtAuthorizationCredentials = Security(access_policy)):

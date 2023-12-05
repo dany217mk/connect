@@ -57,7 +57,7 @@ async def add_post(session: AsyncSession, user: User, title: str = "", text: str
     return user.post
 
 
-async def add_post_with_images(session: AsyncSession, user: User, title: str = "",
+async def add_post_with_images(session: AsyncSession, user_id:int, title: str = "",
                                text: str = "", images = []) -> Post:
     post_images = [
         PostImage(url=image["url"], ratio=image["ratio"])
@@ -66,7 +66,7 @@ async def add_post_with_images(session: AsyncSession, user: User, title: str = "
     post = Post(
         title=title,
         text=text,
-        user_id=user.id,
+        user_id=user_id,
         post_image=post_images
     )
     session.add(post)
