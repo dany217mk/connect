@@ -26,7 +26,6 @@ class User(Base):
     login: Mapped[str | None] = mapped_column(String(256), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(nullable=False)
     name: Mapped[str] = mapped_column(String(256), nullable=False)
-    img_url: Mapped[str | None]
     about: Mapped[str | None]
     created_time: Mapped[created]
     modified_time: Mapped[modified]
@@ -43,12 +42,25 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+    profile_image: Mapped[list["ProfileImage"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return str(self)
 
     def __str__(self):
         return f"User(id={self.id!r}, login={self.login!r}, post={self.post!r}, like={self.like!r}, comment={self.comment!r})"
+
+
+class ProfileImage(Base):
+    __tablename__ = "profile_image"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    img_url: Mapped[str]
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user: Mapped["User"] = relationship(back_populates="profile_image")
 
 
 class Post(Base):
@@ -62,10 +74,6 @@ class Post(Base):
     is_deleted: Mapped[is_deleted]
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     user: Mapped["User"] = relationship(back_populates="post")
-    post_image: Mapped[list["PostImage"]] = relationship(
-        back_populates="post",
-        cascade="all, delete-orphan"
-    )
     like: Mapped[list["Like"]] = relationship(
         back_populates="post",
         cascade="all, delete-orphan"
@@ -82,23 +90,40 @@ class Post(Base):
         return f"Post(id={self.id!r}, title={self.title!r}, text={self.text!r}, post_image={self.post_image!r})"
 
 
-class PostImage(Base):
-    __tablename__ = "post_image"
+class Image(Base):
+    __tablename__ = "image"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     url: Mapped[str] = mapped_column(nullable=False)
-    ratio: Mapped[str | None]
+    width: Mapped[str | None]
+    height: Mapped[str | None]
     created_time: Mapped[created]
     modified_time: Mapped[modified]
     is_deleted: Mapped[is_deleted]
-    post_id: Mapped[int] = mapped_column(ForeignKey("post.id"))
-    post: Mapped["Post"] = relationship(back_populates="post_image")
+
 
     def __repr__(self) -> str:
         return str(self)
 
     def __str__(self):
-        return f"PostImage(id={self.id!r}, url={self.url!r}, ratio={self.ratio!r})"
+        return f"PostImage(id={self.id!r}, url={self.url!r}, ratio={self.width!r})"
+
+
+class PostImage(Base):
+    __tablename__ = "post_image"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_time: Mapped[created]
+    modified_time: Mapped[modified]
+    is_deleted: Mapped[is_deleted]
+    post_id: Mapped[int] = mapped_column(ForeignKey("post.id"))
+    image_id: Mapped[int] = mapped_column(ForeignKey("post.id"))
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __str__(self):
+        return f"PostImage(id={self.id!r}, url={self.post_id!r}, ratio={self.image_id!r})"
 
 
 class Like(Base):

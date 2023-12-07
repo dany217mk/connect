@@ -1,16 +1,17 @@
 from typing import Iterable
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import update, select, delete, func, Select
+from sqlalchemy import update, select, delete, func, Select, text
 from sqlalchemy.orm import selectinload, joinedload
 
-from src.db.schemas import User, Post, PostImage, Like, Comment
+from src.db.schemas import User, Post, PostImage, Like, Comment, ProfileImage
 
 async def paginate(session: AsyncSession, query: Select, limit: int, offset: int) -> dict:
     return {
         'count': await session.scalar(select(func.count()).select_from(query.subquery())),
         'items': [record for record in await session.scalars(query.limit(limit).offset(offset))]
     }
+
 
 # users:
 async def add_user(session: AsyncSession,login: str, name: str, password: str) -> User:
@@ -28,7 +29,8 @@ async def update_user(session: AsyncSession, id: int, name: str | None = None,
     if about is not None:
         user.about = about
     if img_url is not None:
-        user.img_url = img_url
+        profileImage = ProfileImage(user_id=id, img_url=img_url)
+        session.add(profileImage)
     await session.commit()
     return user
 
@@ -40,9 +42,12 @@ async def get_users(session: AsyncSession, limit, offset):
 
 
 async def get_user_by_id(session: AsyncSession, id: int):
-    stmt = select(User).where(User.id == id)
+    stmt = select(User).where(User.id == id).options(
+        selectinload(User.profile_image)
+    )
     user = await session.scalar(stmt)
     return user
+
 
 async def get_user_by_login(session: AsyncSession, login: str):
     stmt = select(User).where(User.login == login)
@@ -57,26 +62,10 @@ async def add_post(session: AsyncSession, user: User, title: str = "", text: str
     return user.post
 
 
-async def add_post_with_images(session: AsyncSession, user_id:int, title: str = "",
-                               text: str = "", images = []) -> Post:
-    post_images = [
-        PostImage(url=image["url"], ratio=image["ratio"])
-        for image in images
-    ]
-    post = Post(
-        title=title,
-        text=text,
-        user_id=user_id,
-        post_image=post_images
-    )
-    session.add(post)
-    await session.commit()
-    return post
 
 
 async def get_post_by_id(session: AsyncSession, id: int):
     stmt = select(Post).where(Post.id == id).options(
-        selectinload(Post.post_image),
         selectinload(Post.like),
         selectinload(Post.comment),
     )
@@ -84,10 +73,18 @@ async def get_post_by_id(session: AsyncSession, id: int):
     return post
 
 
+async def get_posts_in_days(session: AsyncSession, day_limit: int):
+    stmt = select(Post).where(Post.is_deleted == 0, Post.modified_time >= text("NOW() - INTERVAL '7 DAY'")).options(
+        joinedload(Post.user),
+        selectinload(Post.like),
+        selectinload(Post.comment),
+    ).order_by(Post.created_time.desc())
+    res = [record for record in await session.scalars(stmt)]
+    return res
+
 async def get_posts(session: AsyncSession, limit, offset):
     stmt = select(Post).where(Post.is_deleted == 0).options(
         joinedload(Post.user),
-        selectinload(Post.post_image),
         selectinload(Post.like),
         selectinload(Post.comment),
     ).order_by(Post.created_time.desc())
@@ -147,6 +144,12 @@ async def add_comment(session: AsyncSession, user_id: int, post_id: int, text: s
     )
     session.add(comment)
     await session.commit()
+
+
+async def get_comment_by_id(session: AsyncSession, id: int):
+    stmt = select(Comment).where(Comment.id == id)
+    comment = await session.scalar(stmt)
+    return comment
 
 
 async def update_comment(session: AsyncSession, comment_id: int, text: str | None = None):
