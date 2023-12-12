@@ -26,7 +26,7 @@ async def register(user: models.UserCreate, session: AsyncSession = Depends(get_
     access_token = access_policy.create_access_token(subject=subject)
     refresh_token = refresh_policy.create_refresh_token(subject=subject)
 
-    return {"access_token": access_token, "refresh_token": refresh_token}
+    return {"user_id":res.id, "access_token": access_token, "refresh_token": refresh_token}
 
 
 @router.post("/login", response_model=models.TokenResponse)
