@@ -6,7 +6,7 @@ from src.api.routers.posts.models import PostAdd, PostResponse, PostsListRespons
 from src.api.security import access_policy
 from src.api.sessions import get_db_session
 from src.db.crud import get_posts, get_post_by_id, add_post, add_comment, delete_comment, get_comment_by_id, \
-    get_comments, set_like, delete_like
+    get_comments, set_like, delete_like, get_posts_user_id, get_most_liked_posts
 
 router = APIRouter(
     prefix='/post',
@@ -24,6 +24,24 @@ async def get_posts_list(session: AsyncSession = Depends(get_db_session), page: 
 
     return res
 
+
+@router.get("/recommended", response_model=PostsListResponse)
+async def get_posts_list(session: AsyncSession = Depends(get_db_session), page: int = Query(1, ge=1),
+                         per_page: int = Query(100, ge=0), credentials=Depends(access_policy)):
+    limit = per_page * page
+    offset = (page - 1) * per_page
+    res = await get_most_liked_posts(session, limit, offset, user_id=credentials.subject['id'])
+
+    return res
+
+@router.get("/user/{id:int}", response_model=PostsListResponse)
+async def get_user_posts(id:int, session: AsyncSession = Depends(get_db_session), page: int = Query(1, ge=1),
+                         per_page: int = Query(100, ge=0), credentials=Depends(access_policy)):
+    limit = per_page * page
+    offset = (page - 1) * per_page
+    res = await get_posts_user_id(session, limit, offset, user_id=id)
+
+    return res
 
 @router.get("/{id:int}", response_model=PostResponse)
 async def get_post(id: int, session: AsyncSession = Depends(get_db_session), credentials=Depends(access_policy)):

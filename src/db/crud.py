@@ -1,10 +1,10 @@
-from sqlalchemy import select, delete, func, Select
+from sqlalchemy import select, delete, func, Select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from src.db.utils import post_options
 from src.db.schemas import User, Post, Image, Like, Comment
+from src.db.utils import post_options
 
 
 async def paginate(session: AsyncSession, query: Select, limit: int, offset: int) -> dict:
@@ -96,6 +96,31 @@ async def get_posts(session: AsyncSession, limit, offset, user_id: int):
     stmt = (
         select(Post).join(Comment, isouter=True).join(Like, isouter=True)
         .options(*post_options(user_id)).where(Post.is_deleted == 0)
+        .group_by(Post.id)
+        .order_by(Post.created_time.desc())
+    )
+    res = await paginate(session, stmt, limit, offset)
+    return res
+
+
+async def get_most_liked_posts(session: AsyncSession, limit, offset, user_id: int):
+    # sqlalchemy doesn't render options in subquery
+    stmt = (
+        select(Post, text("""count(DISTINCT "like".id) AS "like_count" """)).join(Comment, isouter=True).join(Like,
+                                                                                                              isouter=True)
+        .options(*post_options(user_id)).where(Post.is_deleted == 0,
+                                               Post.created_time >= text("NOW() - INTERVAL '7 DAY'"))
+        .group_by(Post.id)
+        .order_by(text(""" "like_count" DESC""")
+                  ))
+    res = await paginate(session, stmt, limit, offset)
+    return res
+
+
+async def get_posts_user_id(session: AsyncSession, limit, offset, user_id: int):
+    stmt = (
+        select(Post).join(Comment, isouter=True).join(Like, isouter=True)
+        .options(*post_options(user_id)).where(Post.is_deleted == 0, Post.user_id == user_id)
         .group_by(Post.id)
         .order_by(Post.created_time.desc())
     )
