@@ -47,8 +47,3 @@ def refresh(credentials: JwtAuthorizationCredentials = Security(refresh_policy))
     refresh_token = refresh_policy.create_refresh_token(subject=credentials.subject, expires_delta=timedelta(days=2))
 
     return {"user_id": credentials.subject['id'], "access_token": access_token, "refresh_token": refresh_token}
-
-
-@router.get("/test")
-async def test(credentials: JwtAuthorizationCredentials = Security(access_policy)):
-    return 'ok'

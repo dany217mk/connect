@@ -145,3 +145,33 @@ class Comment(Base):
 
     def __str__(self):
         return f"Comment(id={self.id!r}, user_id={self.user_id!r}, post_id={self.post_id!r}, text={self.text!r})"
+
+
+
+async def create_reccomended_func(session):
+    await session.execute(text("""CREATE OR REPLACE FUNCTION calculate_post_score(p_id INT, C float, X float, F float)
+RETURNS INT AS $$
+DECLARE
+    like_count INT;
+    comment_count INT;
+    time_passed INTERVAL;
+BEGIN
+    SELECT COUNT(*)
+    INTO like_count
+    FROM "like"
+    WHERE "post_id" = p_id;
+
+    SELECT COUNT(*)
+    INTO comment_count
+    FROM "comment"
+    WHERE "post_id" = p_id;
+
+    SELECT NOW() - "created_time"
+    INTO time_passed
+    FROM "post"
+    WHERE "id" = p_id;
+
+    RETURN C * like_count + X * comment_count - F * EXTRACT(EPOCH FROM time_passed);
+END;
+$$ LANGUAGE plpgsql;"""))
+    await session.commit()
